@@ -1,0 +1,50 @@
+from sklearn.linear_model import LassoCV, Lasso
+import numpy as np
+import pandas as pd
+from sklearn.metrics import classification_report
+
+
+path_train = r"./XM_train.csv"
+data_train = pd.read_csv(path_train)
+X_train = data_train.drop(["name", "group"], axis=1)
+y_train = data_train["group"]
+
+path_test = r"./XM_test.csv"
+data_test = pd.read_csv(path_test)
+X_test = data_test.drop(["name", "group"], axis=1)
+y_test = data_test["group"]
+Lambdas = np.logspace(-5,2,200)
+
+# Use 10-fold cross-validation to select the best alpha
+lasso_cv = LassoCV(alphas=Lambdas, normalize=True, cv=10, max_iter=1000)
+lasso_cv.fit(X_train, y_train)
+lasso_best_alpha = lasso_cv.alpha_
+print(lasso_best_alpha)
+
+# do lasso using the selected best alpha
+lasso = Lasso(alpha=lasso_best_alpha, normalize=True, max_iter=1000)
+lasso.fit(X_train, y_train)
+y_train_pred = lasso.predict(X_train)
+y_test_pred = lasso.predict(X_test)
+# change the probability to 01
+y_test01 = np.zeros_like(y_test_pred)
+y_test01[y_test_pred >= 0.5] = 1
+
+print(lasso.coef_!=0)
+# write all columns with non-zero lasso.coef_ to csv
+column = []
+column.append(0)
+column.append(1)
+# the first two columns "name" and "group" are not in lasso.coef_'s columns
+for i in range(2, len(lasso.coef_!=0) + 2):
+    if lasso.coef_[i-2]!=0:
+        column.append(i)
+
+data_train.to_csv(r'.\XM_train_selected.csv', columns=data_train.columns[column])
+data_test.to_csv(r'.\XM_test_selected.csv', columns=data_test.columns[column])
+# print(y_train_pred)
+# print(y_test_pred)
+print(classification_report(y_test, y_test01))
+print("Number of features used:{}".format(np.sum(lasso.coef_ != 0)))
+
+print(lasso.coef_[lasso.coef_ !=0])
