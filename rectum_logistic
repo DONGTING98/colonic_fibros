@@ -1,0 +1,56 @@
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import Lasso, LassoCV, LogisticRegressionCV
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, classification_report, roc_curve, auc, roc_auc_score
+import matplotlib.pyplot as plt
+import matplotlib
+
+file_path = r"./rectum_feature5.csv"
+data = pd.read_csv(file_path)
+X = data.drop(["name","score","group"], axis=1)
+y = data["group"]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=15,random_state=0)
+
+
+test_path = r"rectum_feature_test.csv"
+test_data = pd.read_csv(test_path)
+X_test = test_data.drop(["name", "score", "group"], axis=1)
+y_test = test_data["group"]
+
+# preprocessing: scaling
+scaler = StandardScaler()
+X_train_scaler = scaler.fit_transform(X_train)
+X_test_scaler = scaler.transform(X_test)
+
+Cs = np.logspace(-5,2,100)
+logistic_cv = LogisticRegressionCV(Cs=Cs,cv=5,penalty='l1',scoring='accuracy',solver='liblinear',
+                                  tol=1e-3,random_state=0,max_iter=1000)
+logistic_cv.fit(X_train_scaler,y_train)
+logistic_best_C = logistic_cv.C_
+print(logistic_best_C)
+
+y_logistic_predict = logistic_cv.predict(X_test_scaler)
+acc = accuracy_score(y_test, y_logistic_predict)
+print(acc)
+print("Number of features used:{}".format(np.sum(logistic_cv.coef_ != 0)))
+
+y_pred_proba = logistic_cv.predict_proba(X_test_scaler)
+y_train_predict = logistic_cv.predict_proba(X_train_scaler)
+# print(y_train, y_train_predict)
+# print(y_test, y_pred_proba)
+print(classification_report(y_test, y_logistic_predict))
+# fpr, tpr, thres = roc_curve(y_test, y_pred_proba[:, 1], pos_label=1)
+fpr, tpr, thres = roc_curve(y_train, y_train_predict[:, 1], pos_label=1)
+roc_auc = auc(fpr, tpr)
+print("auc:{:.2f}".format(roc_auc))
+
+fig, ax = plt.subplots(figsize=(7, 7))
+ax.plot(fpr, tpr, label='Logisitic Regression(AUC={:.2f})'.format(roc_auc), linewidth=2)
+ax.plot([0, 1], [0, 1], linestyle='--', color='grey')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.legend(loc='lower right')
+plt.title('ROC curve')
+plt.show()
