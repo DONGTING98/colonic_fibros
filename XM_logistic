@@ -1,0 +1,37 @@
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report, roc_curve, auc
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+
+path_train = r"./XM_train_selected.csv"
+path_test = r"./XM_test_selected.csv"
+data_train = pd.read_csv(path_train)
+data_test = pd.read_csv(path_test)
+X_train = data_train.drop(["name","group"], axis=1)
+y_train = data_train["group"]
+X_test = data_test.drop(["name","group"], axis=1)
+y_test = data_test["group"]
+
+# preprocessing: scaling
+scaler = StandardScaler()
+X_train_scaler = scaler.fit_transform(X_train)
+X_test_scaler = scaler.transform(X_test)
+
+lr = LogisticRegression(penalty='none', tol=1e-3, max_iter=1000)
+lr.fit(X_train_scaler, y_train)
+y_test_pred = lr.predict(X_test_scaler)
+print(classification_report(y_test, y_test_pred))
+
+fpr, tpr, thres = roc_curve(y_test, y_test_pred, pos_label=1)
+roc_auc = auc(fpr, tpr)
+print("auc:{:.2f}".format(roc_auc))
+
+fig, ax = plt.subplots(figsize=(7, 7))
+ax.plot(fpr, tpr, label='Logisitic Regression(AUC={:.2f})'.format(roc_auc), linewidth=2)
+ax.plot([0, 1], [0, 1], linestyle='--', color='grey')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.legend(loc='lower right')
+plt.title('ROC curve')
+plt.show()
