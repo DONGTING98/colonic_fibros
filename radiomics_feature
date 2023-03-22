@@ -1,0 +1,40 @@
+import SimpleITK as sitk
+import numpy as np
+import pandas as pd
+import os
+from radiomics import featureextractor, getFeatureClasses
+
+
+paramsFile = r"./rectum_para.yaml"
+extractor = featureextractor.RadiomicsFeatureExtractor(paramsFile)
+featureClasses = getFeatureClasses()
+
+# image_dir = r"F:\rectum_sigmoid\12cases\image_nii"
+# label_dir = r"F:\rectum_sigmoid\12cases\mask_nii"
+image_dir = r"F:\rectum_sigmoid\XM\image"
+label_dir = r"F:\rectum_sigmoid\XM\XM_label"
+images_list = sorted(os.listdir(image_dir),reverse=True)
+labels_list = sorted(os.listdir(label_dir),reverse=True)
+
+df = pd.DataFrame()
+
+for image, label in zip(images_list, labels_list):
+    image_path = os.path.join(image_dir, image)
+    label_path = os.path.join(label_dir, label)
+    name1 = image.split(".")[0]
+    name2 = label.split(".")[0]
+    print(name1, name2)
+
+    img = sitk.ReadImage(image_path, imageIO="NiftiImageIO")
+    lab = sitk.ReadImage(label_path, imageIO="NiftiImageIO")
+
+    featureVector = extractor.execute(img, lab)
+    df_add = pd.DataFrame.from_dict(featureVector.values()).T
+    df_add.insert(0, None, name1)
+    df = pd.concat([df, df_add])
+
+keys = list(featureVector.keys())
+keys.insert(0, 'name')
+df.columns = keys
+# df.to_excel(r".\rectum_feature_12test.xlsx")  # 更改名称
+df.to_excel(r".\XM_feature.xlsx")
