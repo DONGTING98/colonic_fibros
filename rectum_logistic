@@ -19,6 +19,11 @@ test_data = pd.read_csv(test_path)
 X_test = test_data.drop(["name", "score", "group"], axis=1)
 y_test = test_data["group"]
 
+# test_path = r"./rectum_feature_gulou.csv"
+# test_data = pd.read_csv(test_path)
+# X_test = test_data.drop(["name","score","group"], axis=1)
+# y_test = test_data["group"]
+
 # preprocessing: scaling
 scaler = StandardScaler()
 X_train_scaler = scaler.fit_transform(X_train)
